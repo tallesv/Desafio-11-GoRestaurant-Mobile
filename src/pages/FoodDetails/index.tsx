@@ -55,7 +55,9 @@ interface Food {
   name: string;
   description: string;
   price: number;
+  category: number;
   image_url: string;
+  thumbnail_url: string;
   formattedPrice: string;
   extras: Extra[];
 }
@@ -74,7 +76,15 @@ const FoodDetails: React.FC = () => {
   useEffect(() => {
     async function loadFood(): Promise<void> {
       api.get(`foods/${routeParams.id}`).then(response => {
-        setFood(response.data);
+        const apiFood = response.data;
+        setFood(apiFood);
+        setExtras(apiFood.extras);
+        api.get(`favorites`).then(favoritesResponse => {
+          const favorites = favoritesResponse.data;
+          setIsFavorite(
+            !!favorites.find(favorite => favorite.id === apiFood.id),
+          );
+        });
       });
     }
 
@@ -82,31 +92,99 @@ const FoodDetails: React.FC = () => {
   }, [routeParams]);
 
   function handleIncrementExtra(id: number): void {
-    // Increment extra quantity
+    const findExtra = extras.find(extra => extra.id === id);
+
+    if (findExtra) {
+      findExtra.quantity = findExtra.quantity ? findExtra.quantity + 1 : 1;
+
+      const extrasUpdate = extras.map(extra =>
+        extra.id === id ? findExtra : extra,
+      );
+
+      setExtras(extrasUpdate);
+    } else {
+      throw new Error('extra not find.');
+    }
   }
 
   function handleDecrementExtra(id: number): void {
-    // Decrement extra quantity
+    const findExtra = extras.find(extra => extra.id === id);
+
+    if (findExtra) {
+      findExtra.quantity =
+        findExtra.quantity && findExtra.quantity > 1
+          ? findExtra.quantity - 1
+          : 0;
+
+      const extrasUpdate = extras.map(extra =>
+        extra.id === id ? findExtra : extra,
+      );
+
+      setExtras(extrasUpdate);
+    } else {
+      throw new Error('extra not find.');
+    }
   }
 
   function handleIncrementFood(): void {
-    // Increment food quantity
+    setFoodQuantity(foodQuantity > 0 ? foodQuantity + 1 : 1);
   }
 
   function handleDecrementFood(): void {
-    // Decrement food quantity
+    setFoodQuantity(foodQuantity > 1 ? foodQuantity - 1 : 1);
   }
 
   const toggleFavorite = useCallback(() => {
-    // Toggle if food is favorite or not
+    if (isFavorite) {
+      setIsFavorite(false);
+      api.delete(`favorites/${food.id}`);
+    } else {
+      setIsFavorite(true);
+      const {
+        id,
+        name,
+        description,
+        price,
+        category,
+        image_url,
+        thumbnail_url,
+      } = food;
+      api.post('favorites', {
+        id,
+        name,
+        description,
+        price,
+        category,
+        image_url,
+        thumbnail_url,
+      });
+    }
   }, [isFavorite, food]);
 
   const cartTotal = useMemo(() => {
-    // Calculate cartTotal
+    const extraValues = extras.map(extra =>
+      extra.quantity || extra.quantity > 0 ? extra.value * extra.quantity : 0,
+    );
+    const totalExtraValues = extraValues.reduce(
+      (previousValue, currentValue) => previousValue + currentValue,
+      0,
+    );
+
+    return food.price * foodQuantity + totalExtraValues;
   }, [extras, food, foodQuantity]);
 
   async function handleFinishOrder(): Promise<void> {
-    // Finish the order and save on the API
+    const { id, name, description, price, category, thumbnail_url } = food;
+    const getExtras = extras.map(extra => (extra.quantity > 0 ? extra : null));
+    api.post('orders', {
+      product_id: id,
+      name,
+      description,
+      price,
+      category,
+      thumbnail_url,
+      extras: getExtras,
+    });
   }
 
   // Calculate the correct icon name
@@ -147,7 +225,7 @@ const FoodDetails: React.FC = () => {
             <FoodContent>
               <FoodTitle>{food.name}</FoodTitle>
               <FoodDescription>{food.description}</FoodDescription>
-              <FoodPricing>{food.formattedPrice}</FoodPricing>
+              <FoodPricing>{formatValue(food.price)}</FoodPricing>
             </FoodContent>
           </Food>
         </FoodsContainer>
@@ -165,7 +243,9 @@ const FoodDetails: React.FC = () => {
                   testID={`decrement-extra-${extra.id}`}
                 />
                 <AdittionalItemText testID={`extra-quantity-${extra.id}`}>
-                  {extra.quantity}
+                  {extra.quantity || extra.quantity > 1
+                    ? extra.quantity
+                    : undefined}
                 </AdittionalItemText>
                 <Icon
                   size={15}
@@ -181,7 +261,9 @@ const FoodDetails: React.FC = () => {
         <TotalContainer>
           <Title>Total do pedido</Title>
           <PriceButtonContainer>
-            <TotalPrice testID="cart-total">{cartTotal}</TotalPrice>
+            <TotalPrice testID="cart-total">
+              {formatValue(cartTotal)}
+            </TotalPrice>
             <QuantityContainer>
               <Icon
                 size={15}

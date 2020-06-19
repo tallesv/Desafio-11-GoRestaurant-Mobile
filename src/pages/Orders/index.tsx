@@ -3,6 +3,7 @@ import { Image } from 'react-native';
 
 import api from '../../services/api';
 import formatValue from '../../utils/formatValue';
+import FoodDetails from '../FoodDetails';
 
 import {
   Container,
@@ -17,6 +18,13 @@ import {
   FoodDescription,
   FoodPricing,
 } from './styles';
+
+interface Extra {
+  id: number;
+  name: string;
+  value: number;
+  quantity: number;
+}
 
 interface Food {
   id: number;
