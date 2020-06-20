@@ -78,6 +78,11 @@ const FoodDetails: React.FC = () => {
       api.get(`foods/${routeParams.id}`).then(response => {
         const apiFood = response.data;
         setFood(apiFood);
+        apiFood.extras.map((extra: Extra) => {
+          const update = extra;
+          update.quantity = 0;
+          return update;
+        });
         setExtras(apiFood.extras);
         api.get(`favorites`).then(favoritesResponse => {
           const favorites = favoritesResponse.data;
@@ -185,6 +190,7 @@ const FoodDetails: React.FC = () => {
       thumbnail_url,
       extras: getExtras,
     });
+    navigation.navigate('Orders');
   }
 
   // Calculate the correct icon name
@@ -243,9 +249,7 @@ const FoodDetails: React.FC = () => {
                   testID={`decrement-extra-${extra.id}`}
                 />
                 <AdittionalItemText testID={`extra-quantity-${extra.id}`}>
-                  {extra.quantity || extra.quantity > 1
-                    ? extra.quantity
-                    : undefined}
+                  {extra.quantity}
                 </AdittionalItemText>
                 <Icon
                   size={15}

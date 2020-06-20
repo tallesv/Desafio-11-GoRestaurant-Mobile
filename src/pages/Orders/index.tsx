@@ -3,7 +3,6 @@ import { Image } from 'react-native';
 
 import api from '../../services/api';
 import formatValue from '../../utils/formatValue';
-import FoodDetails from '../FoodDetails';
 
 import {
   Container,
@@ -33,6 +32,10 @@ interface Food {
   price: number;
   formattedValue: number;
   thumbnail_url: string;
+}
+
+interface Params {
+  update: boolean;
 }
 
 const Orders: React.FC = () => {
